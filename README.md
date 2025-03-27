@@ -22,6 +22,12 @@ Downloading fhvhv_tripdata_2019-03.parquet (582.55 MB)...
 Successfully downloaded fhvhv_tripdata_2019-03.parquet
 Uploading fhvhv_tripdata_2019-03.parquet to S3...
 Completed 582.6 MiB/582.6 MiB (103.4 MiB/s) with 1 file(s) remaining
+..
+Successfully uploaded fhvhv_tripdata_2025-01.parquet to S3
+-------------------------------------------------------
+Summary:
+-------------------------------------------------------
+Total files processed: 72
+Total size: 29.62 GB
 ```
-
-Since Feb 2019 til now, the total size is 29.62 GB.
+It took me 18.5 minutes to download and upload them to S3. So be patient.
