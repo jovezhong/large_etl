@@ -58,13 +58,12 @@ CREATE EXTERNAL TABLE target_nyc_fhvhv (
     `wav_match_flag` nullable (string)
 )
 PARTITION BY
-    coalesce(
-        format_datetime (pickup_datetime, '%Y-%m'),
-        '0000-00'
-    ) SETTINGS type = 's3',
+    format_datetime (pickup_datetime, '%Y-%m') --same file name as source
+    SETTINGS type = 's3',
     region = 'us-west-2',
     bucket = 'tp-internal2',
     use_environment_credentials = true,
+    s3_min_upload_file_size = 1073741824, -- single file max size: 1GB
     write_to = 'jove/s3etl/timeplus/fhvhv_tripdata_{_partition_id}.parquet';
 
 INSERT INTO
