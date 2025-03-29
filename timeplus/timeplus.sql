@@ -28,7 +28,7 @@ CREATE EXTERNAL TABLE nyc_fhvhv (
 region = 'us-west-2',
 bucket = 'timeplus-nyc-tlc',
 use_environment_credentials = true,
-read_from = 'fhvhv_tripdata_2019-02.parquet';
+read_from = 'fhvhv_tripdata_20{19..25}-{01..12}.parquet';
 
 -- An external table in Timeplus to write data to a S3 bucket
 CREATE EXTERNAL TABLE target_nyc_fhvhv (
