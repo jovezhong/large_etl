@@ -63,7 +63,8 @@ PARTITION BY
     region = 'us-west-2',
     bucket = 'tp-internal2',
     use_environment_credentials = true,
-    s3_min_upload_file_size = 1073741824, -- single file max size: 1GB
+    s3_min_upload_file_size = 1073741824, -- single file max size: 1G, default 0.5G
+    s3_max_upload_idle_seconds = 1, -- flush data to s3 after 1s idle. Default 0(keep waiting)
     write_to = 'jove/s3etl/timeplus/fhvhv_tripdata_{_partition_id}.parquet';
 
 INSERT INTO
