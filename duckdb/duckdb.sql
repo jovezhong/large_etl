@@ -1,3 +1,11 @@
+-- Avoid OOM for large ETL duckdb.org/docs/stable/guides/performance/how_to_tune_workloads.html
+SET
+    preserve_insertion_order = false;
+
+-- https://duckdb.org/docs/stable/guides/performance/environment
+SET
+    threads = 16;
+
 INSTALL httpfs;
 
 LOAD httpfs;
@@ -63,10 +71,3 @@ COPY (
             union_by_name = true
         )
 ) TO 's3://tp-internal2/jove/s3etl/duckdb' (FORMAT parquet);
-
--- Debug/tuning
-SET
-    memory_limit = '20GB';
-
-SET
-    s3_uploader_max_parts_per_file = 10;
