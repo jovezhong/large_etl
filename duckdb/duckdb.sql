@@ -47,14 +47,23 @@ COPY (
             WHEN 'HV0005' THEN 'Lyft'
             ELSE 'Unknown'
         END AS hvfhs_license_num,
+        year (pickup_datetime) AS year,
+        month (pickup_datetime) AS month,
         * EXCLUDE (hvfhs_license_num)
     FROM
         read_parquet (
             's3://timeplus-nyc-tlc/fhvhv_tripdata_2019-02.parquet'
         )
-) TO 's3://tp-internal2/jove/s3etl/duckdb/fhvhv_tripdata_2019-02.parquet';
+) TO 's3://tp-internal2/jove/s3etl/duckdb' (
+    FORMAT parquet,
+    COMPRESSION 'zstd',
+    COMPRESSION_LEVEL 6,
+    PARTITION_BY (year, month),
+    OVERWRITE_OR_IGNORE,
+    FILENAME_PATTERN 'fhvhv_tripdata_{i}'
+);
 
--- DuckDB ETL, all files
+-- DuckDB ETL, all files, without partition, 1 file
 COPY (
     SELECT
         CASE hvfhs_license_num
@@ -70,4 +79,55 @@ COPY (
             's3://timeplus-nyc-tlc/fhvhv_tripdata_*.parquet',
             union_by_name = true
         )
+) TO 's3://tp-internal2/jove/s3etl/duckdb' (FORMAT parquet);
+
+-- DuckDB ETL, all files, with partitions and compression, 2x slower
+COPY (
+    SELECT
+        CASE hvfhs_license_num
+            WHEN 'HV0002' THEN 'Juno'
+            WHEN 'HV0003' THEN 'Uber'
+            WHEN 'HV0004' THEN 'Via'
+            WHEN 'HV0005' THEN 'Lyft'
+            ELSE 'Unknown'
+        END AS hvfhs_license_num,
+        year (pickup_datetime) AS year,
+        month (pickup_datetime) AS month,
+        * EXCLUDE (hvfhs_license_num)
+    FROM
+        read_parquet (
+            's3://timeplus-nyc-tlc/fhvhv_tripdata_*.parquet',
+            union_by_name = true
+        )
+) TO 's3://tp-internal2/jove/s3etl/duckdb' (
+    FORMAT parquet,
+    COMPRESSION 'zstd',
+    COMPRESSION_LEVEL 6,
+    PARTITION_BY (year, month),
+    OVERWRITE_OR_IGNORE,
+    FILENAME_PATTERN 'fhvhv_tripdata_{i}'
+);
+
+--duckdb empty.db
+CREATE VIEW v AS
+SELECT
+    CASE hvfhs_license_num
+        WHEN 'HV0002' THEN 'Juno'
+        WHEN 'HV0003' THEN 'Uber'
+        WHEN 'HV0004' THEN 'Via'
+        WHEN 'HV0005' THEN 'Lyft'
+        ELSE 'Unknown'
+    END AS hvfhs_license_num,
+    * EXCLUDE (hvfhs_license_num)
+FROM
+    read_parquet (
+        's3://timeplus-nyc-tlc/fhvhv_tripdata_*.parquet',
+        union_by_name = true
+    );
+
+COPY (
+    SELECT
+        *
+    FROM
+        v
 ) TO 's3://tp-internal2/jove/s3etl/duckdb' (FORMAT parquet);
