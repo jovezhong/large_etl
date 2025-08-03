@@ -57,16 +57,17 @@ CREATE EXTERNAL TABLE target_nyc_fhvhv (
     `wav_request_flag` nullable (string),
     `wav_match_flag` nullable (string)
 )
-PARTITION BY
-    format_datetime (pickup_datetime, '%Y-%m') --same file name as source
-    SETTINGS type = 's3',
-    region = 'us-west-2',
-    bucket = 'tp-internal2',
-    use_environment_credentials = true,
-    s3_min_upload_file_size = 1073741824, -- single file max size: 1G, default 0.5G
-    s3_max_upload_idle_seconds = 1, -- flush data to s3 after 1s idle. Default 0(keep waiting)
-    write_to = 'jove/s3etl/timeplus/fhvhv_tripdata_{_partition_id}.parquet';
+-- PARTITION BY format_datetime (pickup_datetime, '%Y-%m') --same file name as source
+SETTINGS type = 's3',
+region = 'us-west-2',
+bucket = 'tp-internal2',
+use_environment_credentials = true,
+s3_min_upload_file_size = 1073741824, -- single file max size: 1G, default 0.5G
+s3_min_upload_part_size = 33554432, -- 32MB part size
+s3_max_upload_idle_seconds = 1, -- flush data to s3 after 1s idle. Default 0(keep waiting)
+write_to = 'jove/s3etl/timeplus/fhvhv_tripdata.parquet';
 
+-- ETL
 INSERT INTO
     target_nyc_fhvhv
 SELECT
@@ -81,4 +82,5 @@ SELECT
 EXCEPT
 (hvfhs_license_num)
 FROM
-    nyc_fhvhv;
+    nyc_fhvhv SETTINGS max_threads = 8,
+    max_insert_threads = 4

@@ -30,18 +30,20 @@ fileNames.foreach { fileName =>
   val file = sourceBucket + fileName + ".parquet"
 
   try {
-    println(s"Reading file: $fileName")
-    var startReadMs = System.currentTimeMillis;
-    // Read file as DataFrame
-    val df = spark.read.parquet(file)
-    var startTransformMs = System.currentTimeMillis;
-    println(s"Done reading file(${(startTransformMs - startReadMs) / 1000}s)")
-    println("Starting transformations...")
-    // Create a temp view to run SQL
-    df.createOrReplaceTempView("parquetFile")
+    // Process in a separate scope to help garbage collection
+    {
+      println(s"Reading file: $fileName")
+      var startReadMs = System.currentTimeMillis;
+      // Read file as DataFrame
+      val df = spark.read.parquet(file)
+      var startTransformMs = System.currentTimeMillis;
+      println(s"Done reading file(${(startTransformMs - startReadMs) / 1000}s)")
+      println("Starting transformations...")
+      // Create a temp view to run SQL
+      df.createOrReplaceTempView("parquetFile")
 
-    // Apply transformations using SQL
-    val transformedDF = spark.sql("""
+      // Apply transformations using SQL
+      val transformedDF = spark.sql("""
       SELECT
         CASE
           WHEN hvfhs_license_num='HV0002' THEN 'Juno'
@@ -75,20 +77,26 @@ fileNames.foreach { fileName =>
         wav_match_flag
       FROM parquetFile
     """)
-    var startLoadMs = System.currentTimeMillis;
-    println(
-      s"Done transformations(${(startLoadMs - startTransformMs) / 1000}s)"
-    )
-    println("Writing data to S3...")
+      var startLoadMs = System.currentTimeMillis;
+      println(
+        s"Done transformations(${(startLoadMs - startTransformMs) / 1000}s)"
+      )
+      println("Writing data to S3...")
 
-    // Write the transformed data back to S3
-    transformedDF.write
-      .mode("overwrite")
-      .parquet(destinationBucket + fileName)
+      // Write the transformed data back to S3
+      transformedDF.write
+        .mode("overwrite")
+        .parquet(destinationBucket + fileName)
 
-    println(
-      s"Successfully saved file to: $destinationBucket$fileName (${(System.currentTimeMillis - startLoadMs) / 1000}s)\n"
-    )
+      println(
+        s"Successfully saved file to: $destinationBucket$fileName (${(System.currentTimeMillis - startLoadMs) / 1000}s)\n"
+      )
+    }
+
+    // Explicit cleanup
+    spark.catalog.dropTempView("parquetFile")
+    spark.sql("CLEAR CACHE")
+    System.gc()
   } catch {
     case e: Exception =>
       println(s"Error processing file $fileName: ${e.getMessage}\n")
